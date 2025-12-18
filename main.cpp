@@ -1,205 +1,202 @@
+#include "library.h"
+#include "library.cpp"
 #include <iostream>
 #include <string>
-#include <conio.h> 
+#include <conio.h>
 #include <cstdlib> // Untuk fungsi rand() dan srand()
 #include <ctime>   // Untuk fungsi time()
-
 using namespace std;
 
-// --- Struktur Data ---
-struct User {
-    int id;
-    string username;
-    string password;
-};
+int main()
+{
+    srand(time(0));
+    UserNode *users = nullptr;
 
-struct UserNode {
-    User data;
-    UserNode* left;
-    UserNode* right;
-};
+    const int ADMIN_ID = 90000001;
+    const string ADMIN_USER = "Admin123";
+    const string ADMIN_PASS = "Admin123";
 
-UserNode* createUserNode(User user) {
-    UserNode* newNode = new UserNode();
-    newNode->data = user;
-    newNode->left = newNode->right = nullptr;
-    return newNode;
-}
-
-UserNode* insertUser(UserNode* root, User user) {
-    if (root == nullptr) return createUserNode(user);
-    
-    // Perbandingan berdasarkan ID User
-    if (user.id < root->data.id) {
-        root->left = insertUser(root->left, user);
-    } else if (user.id > root->data.id) {
-        root->right = insertUser(root->right, user);
-    }
-    return root; 
-}
-
-UserNode* searchUser(UserNode* root, int id) {
-    if (root == nullptr || root->data.id == id) return root;
-    if (id < root->data.id) return searchUser(root->left, id);
-    
-    return searchUser(root->right, id);
-}
-
-// --- Fungsi Input Password Tersembunyi ---
-string getPassword() {
-    string pass;
-    char ch;
-    while ((ch = _getch()) != '\r') {
-        if (ch == '\b') {
-            if (!pass.empty()) {
-                cout << "\b \b";
-                pass.pop_back();
-            }
-        }
-        else {
-            pass += ch;
-            cout << '*';
-        }
-    }
-    cout << endl;
-    return pass;
-}
-
-// --- FUNGSI GENERATE ID UNIK ---
-int generateRandomID() {
-    return (rand() % 900000) + 100000;
-}
-
-
-int main() {
-    // PENTING: Inisialisasi seed untuk generator angka acak
-    srand(time(0)); 
-
-    UserNode* users = nullptr;
-    
-    const int ADMIN_ID = 90000001; 
-    const string ADMIN_USERNAME = "Admin123";
-    const string ADMIN_PASSWORD = "Admin123";
-    
     bool loggedIn = false;
-    int currentID;
-    string currentUsername;
-    int role = 0; // 0=belum login, 1=Admin, 2=User biasa
+    int role = 0;
 
-    while (true) {
-        if (!loggedIn) {
-            int choice;
-            cout << "\n===============================\n";
-            cout << "1. Login\n2. Register\n3. Exit\n";
-            cout << "Pilih: ";
-            
-            if (!(cin >> choice)) {
+    while (true)
+    {
+        if (!loggedIn)
+        {
+            cout << "\n--- SELAMAT DATANG DI SKIN LIBRARY ---";
+            cout << "\n1. Login\n2. Register\n3. Exit\nPilih: ";
+            int c;
+            cin >> c;
+
+            if (cin.fail())
+            {
                 cin.clear();
                 cin.ignore(10000, '\n');
                 cout << "Input tidak valid.\n";
                 continue;
             }
-            cout << "-------------------------------\n";
 
-            if (choice == 3) break;
-            
-            // --- Register User (Pilihan 2) ---
-            if (choice == 2) {
+            if (c == 1)
+            {
+                string idStr, pass;
                 int id;
-                string username, password;
-                
-                cout << "REGISTRASI USER BARU\n";
-                cout << "Username : "; cin >> username;
-                
-                // >>> MEMASTIKAN ID UNIK SECARA OTOMATIS <<<
-                bool id_is_unique = false;
-                do {
-                    id = generateRandomID(); 
-                    // Cek duplikasi ID di BST dan pastikan bukan ADMIN ID
-                    if (!searchUser(users, id) && id != ADMIN_ID) {
-                        id_is_unique = true;
+
+                cout << "ID: ";
+                cin >> idStr;
+
+                bool valid = true;
+                id = 0;
+
+                for (char ch : idStr)
+                {
+                    if (!isdigit(ch))
+                    {
+                        valid = false;
+                        break;
                     }
-                } while (!id_is_unique);
-                cout << "ID User Anda: " << id << "\n";
-                // >>> AKHIR MEMASTIKAN ID UNIK SECARA OTOMATIS <<<
-                
-                // Validasi password minimal 8 karakter
-                do {
-                    cout << "Password (min 8 karakter): ";
-                    password = getPassword(); 
-                    
-                    if (password.length() < 8) {
-                        cout << "Password kurang dari 8 karakter.\n";
-                    }
-                } while (password.length() < 8);
-                
-                // Masukkan user baru ke dalam tree user
-                users = insertUser(users, {id, username, password});
-                cout << "Registrasi sukses! ID: " << id << ", Username: " << username << "\n";
-            }
-            
-            // --- Login User (Pilihan 1) ---
-            else if (choice == 1) {
-                // ... (Logika Login, tidak berubah)
-                int input_id;
-                string input_password;
-                cout << "LOGIN\n";
-                cout << "Masukkan ID User: "; cin >> input_id;
+                    id = id * 10 + (ch - '0');
+                }
+
                 cout << "Password: ";
-                input_password = getPassword(); 
+                pass = getPassword();
 
-                // Cek Admin mode
-                if (input_id == ADMIN_ID && input_password == ADMIN_PASSWORD) {
+                if (!valid)
+                {
+                    cout << "Login gagal.\n";
+                    continue;
+                }
+
+                if (id == ADMIN_ID && pass == ADMIN_PASS)
+                {
                     loggedIn = true;
-                    currentID = ADMIN_ID;
-                    currentUsername = ADMIN_USERNAME;
-                    role = 1; // Admin
-                    cout << "Login Admin sukses. Selamat datang, " << currentUsername << "!\n";
+                    role = 1;
                 }
-                // Cek User biasa
-                else {
-                    UserNode* found = searchUser(users, input_id);
-                    // User ditemukan DAN password sesuai
-                    if (found && found->data.password == input_password) {
+                else
+                {
+                    UserNode *u = searchUser(users, id);
+                    if (u && u->data.password == pass)
+                    {
                         loggedIn = true;
-                        currentID = found->data.id;
-                        currentUsername = found->data.username;
-                        role = 2; // User biasa
-                        cout << "Login User sukses. Selamat datang, " << currentUsername << "!\n";
+                        role = 2;
                     }
-                    // User tidak ditemukan atau password salah
-                    else {
-                        cout << "Login gagal: ID User atau Password salah.\n";
+                    else
+                    {
+                        cout << "Login gagal.\n";
                     }
                 }
-            } else {
-                cout << "Pilihan tidak valid.\n";
             }
-        }
-        
-        // --- Menu Utama (Login Berhasil) ---
-        else {
-            if (role == 1) {
-                cout << "\n--- MENU ADMIN ---\n";
-                cout << "ID: " << currentID << " | User: " << currentUsername << "\n";
-                cout << "ini juga di ubah\n";
-            } else if (role == 2) {
-                cout << "\n--- MENU USER ---\n";
-                cout << "ID: " << currentID << " | User: " << currentUsername << "\n";
-                cout << "ini yang km ubah wahai manusia\n";
+            else if (c == 2)
+            {
+                User u;
+                cout << "Username: ";
+                cin >> u.username;
+
+                do
+                {
+                    u.id = rand() % 900000 + 100000;
+                } while (searchUser(users, u.id));
+
+                cout << "ID Anda: " << u.id << endl;
+
+                do
+                {
+                    cout << "Password (min 8): ";
+                    u.password = getPassword();
+                } while (u.password.length() < 8);
+
+                users = insertUser(users, u);
+                cout << "Registrasi sukses.\n";
             }
 
-            // Contoh logout sederhana
-            int logout_choice;
-            cout << "4. Logout\nPilih: ";
-            if (cin >> logout_choice && logout_choice == 4) {
-                loggedIn = false;
-                role = 0;
-                cout << "Logout sukses.\n";
+            else if (c == 3)
+            {
+                cout << "Terima kasih telah menggunakan Skin Library!\n";
+                break;
+            }
+            else
+            {
+                cout << "Pilihan tidak valid.\n";
                 continue;
             }
         }
+
+        else if (role == 1)
+        {
+            while (true)
+            {
+                cout << "\n--- ADMIN SKIN LIBRARY ---\n";
+                cout << "1. Tambah Skin\n";
+                cout << "2. Hapus Skin\n";
+                cout << "3. Tampilkan Skin\n";
+                cout << "4. Cari Skin\n";
+                cout << "5. Skin Serupa\n";
+                cout << "6. Kembali\n";
+                cout << "Pilih: ";
+
+                int c;
+                cin >> c;
+
+                if (c == 1)
+                    addSkin();
+                else if (c == 2)
+                    deleteSkin();
+                else if (c == 3)
+                    showSkins();
+                else if (c == 4)
+                    searchSkin();
+                else if (c == 5)
+                    similarSkin();
+                else if (c == 6)
+                {
+                    if (confirmBackAdmin())
+                    {
+                        loggedIn = false;
+                        role = 0;
+                        break;
+                    }
+                }
+            }
+        }
+
+        else if (role == 2)
+        {
+            int userId;
+
+            while (true)
+            {
+                cout << "\n--- MENU USER ---\n";
+                cout << "1. Lihat Semua Skin\n";
+                cout << "2. Simpan Skin ke Koleksi\n";
+                cout << "3. Cari Skin (Hero)\n";
+                cout << "4. Cari Skin (Rarity)\n";
+                cout << "5. Lihat Koleksi Skin\n";
+                cout << "6. Gunakan Skin\n";
+                cout << "7. Logout\n";
+                cout << "Pilih: ";
+
+                int c;
+                cin >> c;
+
+                if (c == 1)
+                    showSkins();
+                else if (c == 2)
+                    addSkinToUser(userId);
+                else if (c == 3)
+                    searchSkinByHero();
+                else if (c == 4)
+                    searchSkinByRarity();
+                else if (c == 5)
+                    showUserSkins(userId);
+                else if (c == 6)
+                    useUserSkin(userId);
+                else if (c == 7)
+                {
+                    loggedIn = false;
+                    role = 0;
+                    break;
+                }
+            }
+        }
     }
-    
     return 0;
 }
